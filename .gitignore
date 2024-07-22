@@ -40,7 +40,7 @@ var/
 *.egg-info/
 *.manifest
 .pyre/
-
+.env
 # If you use Poetry
 poetry.lock
 
