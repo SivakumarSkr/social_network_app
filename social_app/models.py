@@ -53,11 +53,14 @@ class BaseModel(models.Model):
 
 
 class UserProfile(BaseModel):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='user_profile')
     friends = models.ManyToManyField('self', symmetrical=False, related_name='following', blank=True)
 
     def __str__(self):
         return f'{self.user.email}'
+    
+    def get_friends(self):
+        return self.friends.all()
 
 
 class RequestStatus(models.TextChoices):
@@ -71,6 +74,9 @@ class FriendRequest(BaseModel):
     receiver = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='received_requests')
     status = models.CharField(max_length=1, choices=RequestStatus.choices, default=RequestStatus.PENDING)
 
+    class Meta:
+        unique_together = ('sender', 'receiver')
+    
     def __str__(self):
         return f'{self.sender.name} -> {self.receiver.name}'
 

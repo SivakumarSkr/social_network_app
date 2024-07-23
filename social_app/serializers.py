@@ -27,6 +27,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserDetailSerializer(serializers.ModelSerializer):
     name = serializers.CharField(max_length=150, source='user.name')
+    email = serializers.EmailField(source='user.email')
     class Meta:
         model = UserProfile
         fields = ('uuid', 'email', 'name')

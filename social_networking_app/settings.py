@@ -141,4 +141,4 @@ REST_FRAMEWORK = {
     ),
 }
 
-
+MAX_REQUESTS_IN_MINUTE = 3
