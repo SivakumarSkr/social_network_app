@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.utils import timezone
+import uuid
 
 
 class CustomUserManager(BaseUserManager):
@@ -40,3 +41,36 @@ class CustomUser(AbstractBaseUser):
 
     def __str__(self):
         return self.email
+    
+
+class BaseModel(models.Model):
+    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
+
+class UserProfile(BaseModel):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    friends = models.ManyToManyField('self', symmetrical=False, related_name='following', blank=True)
+
+    def __str__(self):
+        return f'{self.user.email}'
+
+
+class RequestStatus(models.TextChoices):
+    PENDING = 'P', 'Pending'
+    ACCEPTED = 'A', 'Accepted'
+    REJECTED = 'R', 'Rejected'
+
+
+class FriendRequest(BaseModel):
+    sender = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='sent_requests')
+    receiver = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='received_requests')
+    status = models.CharField(max_length=1, choices=RequestStatus.choices, default=RequestStatus.PENDING)
+
+    def __str__(self):
+        return f'{self.sender.name} -> {self.receiver.name}'
+
