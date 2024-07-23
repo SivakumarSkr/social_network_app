@@ -23,5 +23,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),    
-    path('api/', include('social_app.urls')), # include your app urls.py here
+    path('api/', include('social_app.api_urls')), # include your app urls.py here
 ]

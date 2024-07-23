@@ -1,0 +1,70 @@
+# Exclude Python bytecode
+__pycache__
+*.pyc
+*.pyo
+
+# Exclude development and testing files
+*.log
+*.pot
+*.pyc
+*.pycoverage
+*.cover
+*.coverage.*
+.cache
+.tox
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis
+.pytest_cache
+
+# Exclude Django specific files and folders
+db.sqlite3
+media
+staticfiles
+*.db
+
+# Exclude environment variables and virtual environments
+.env
+.env.*
+venv
+venv/
+.envrc
+
+# Exclude Docker-specific files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Exclude version control folders
+.git
+.gitignore
+.gitattributes
+
+# Exclude editor and IDE specific files
+.vscode
+.idea
+*.sublime-project
+*.sublime-workspace
+*.swp
+*~
+
+# Exclude build directories
+build/
+dist/
+*.egg-info/
+.installed.cfg
+eggs/
+parts/
+sdist/
+var/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+*.egg
+MANIFEST
+*.sh
+*.tar.gz
+*.zip

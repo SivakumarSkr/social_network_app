@@ -130,6 +130,8 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+AUTH_USER_MODEL = 'social_app.CustomUser'
+
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -139,4 +141,4 @@ REST_FRAMEWORK = {
     ),
 }
 
-AUTH_USER_MODEL = 'social_app.CustomUser'
+

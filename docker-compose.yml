@@ -4,7 +4,7 @@ services:
     command: sh -c "python manage.py migrate &&
                     python manage.py runserver 0.0.0.0:${APP_PORT}" 
     volumes:
-      - .:/social_networking
+      - .:/app
     env_file:
       - ./.env
     environment:
@@ -14,9 +14,7 @@ services:
       - ${APP_PORT}
     ports:
       - ${APP_PORT}:${APP_PORT}
-
     restart: "always"
-
     depends_on:
       - db
   db:
@@ -35,4 +33,3 @@ services:
 
 volumes:
   postgres_data:
-    driver: local
