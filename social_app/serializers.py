@@ -8,6 +8,15 @@ class SignUpSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ('name', 'email', 'password')
 
+    def create(self, validated_data):
+        user = CustomUser.objects.create_user(
+            name=validated_data['name'],
+            email=validated_data['email'],
+            password=validated_data['password']
+        )
+        UserProfile.objects.create(user=user)
+        return user
+
 
 class UserSerializer(serializers.ModelSerializer):
     name = serializers.CharField(max_length=150, source='user.name')
