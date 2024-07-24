@@ -34,6 +34,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
 
 class FriendRequestSerializer(serializers.ModelSerializer):
+    sender = UserSerializer(read_only=True)
+    status = serializers.CharField(source="get_status_display")
     class Meta:
         model = FriendRequest
         fields = ('uuid', 'status', 'sender', 'created_at')

@@ -57,7 +57,7 @@ class UserProfile(BaseModel):
     friends = models.ManyToManyField('self', symmetrical=False, related_name='following', blank=True)
 
     def __str__(self):
-        return f'{self.user.email}'
+        return f'{self.user.name}'
     
     def get_friends(self):
         return self.friends.all()
@@ -78,5 +78,17 @@ class FriendRequest(BaseModel):
         unique_together = ('sender', 'receiver')
     
     def __str__(self):
-        return f'{self.sender.name} -> {self.receiver.name}'
+        return f'{self.sender} -> {self.receiver}'
+    
+    def make_accepted(self):
+        self.sender.friends.add(self.receiver)
+        self.status = RequestStatus.ACCEPTED
+        self.save()
+
+    def make_rejected(self):
+        self.status = RequestStatus.REJECTED
+        self.save()
+    
+    def not_in_pending(self):
+        return self.status != RequestStatus.PENDING
 
