@@ -36,7 +36,7 @@ class SignUpView(APIView):
 
 
 class UserSearchAPIView(APIView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request):
         query_params = request.query_params
         search_key = query_params.get("search", None)
         is_email = is_valid_email(search_key)
@@ -103,6 +103,9 @@ class SendRequestAPIview(APIView):
 
 
 class BaseRequestView(APIView, ABC):
+    """
+        Base class for approve and reject apiViews. 
+    """
     permission_classes = [permissions.IsAuthenticated, IsReceiver]
     action = None
 
@@ -124,6 +127,9 @@ class BaseRequestView(APIView, ABC):
 
     @abstractmethod
     def perform_action(self, request_object):
+        """
+        All API views inherit from this class should implement this method
+        """
         pass
 
 

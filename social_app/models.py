@@ -1,7 +1,6 @@
 from django.contrib.auth.models import (
     AbstractBaseUser,
-    BaseUserManager,
-    PermissionsMixin,
+    BaseUserManager
 )
 from django.db import models
 from django.utils import timezone
@@ -45,7 +44,7 @@ class CustomUser(AbstractBaseUser):
     REQUIRED_FIELDS = []
 
     def __str__(self):
-        return self.email
+        return f'{self.email}'
 
 
 class BaseModel(models.Model):
