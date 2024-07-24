@@ -14,6 +14,7 @@ This Django Rest Framework (DRF) application serves as a social networking platf
    - [Build and Run with Docker Compose](#build-and-run-with-docker-compose)
 4. [Usage](#usage)
 5. [Endpoints](#endpoints)
+6. [Code Formatting and Linting](#code-formatting-and-linting)
 
 ## Overview
 
@@ -94,7 +95,7 @@ This command will build the Docker images and start the containers as defined in
 
 ## Endpoints
 
-Please find postman collection for endpoints in this [link](#https://www.postman.com/technical-explorer-6580566/workspace/my-works/collection/15804981-300b29b4-1cb6-4a55-b576-0d79464cd484?action=share&creator=15804981)
+Please find postman collection for endpoints in this [link](https://www.postman.com/technical-explorer-6580566/workspace/my-works/collection/15804981-300b29b4-1cb6-4a55-b576-0d79464cd484?action=share&creator=15804981)
 
 ## Code Formatting and Linting
 
