@@ -1,4 +1,8 @@
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    BaseUserManager,
+    PermissionsMixin,
+)
 from django.db import models
 from django.utils import timezone
 import uuid
@@ -7,7 +11,7 @@ import uuid
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
-            raise ValueError('The Email field must be set')
+            raise ValueError("The Email field must be set")
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
@@ -15,15 +19,16 @@ class CustomUserManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
 
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError('Superuser must have is_staff=True.')
-        if extra_fields.get('is_superuser') is not True:
-            raise ValueError('Superuser must have is_superuser=True.')
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError("Superuser must have is_staff=True.")
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError("Superuser must have is_superuser=True.")
 
         return self.create_user(email, password, **extra_fields)
+
 
 class CustomUser(AbstractBaseUser):
     email = models.EmailField(unique=True)
@@ -36,12 +41,12 @@ class CustomUser(AbstractBaseUser):
 
     objects = CustomUserManager()
 
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
     def __str__(self):
         return self.email
-    
+
 
 class BaseModel(models.Model):
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -53,33 +58,43 @@ class BaseModel(models.Model):
 
 
 class UserProfile(BaseModel):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='user_profile')
-    friends = models.ManyToManyField('self', symmetrical=False, related_name='following', blank=True)
+    user = models.OneToOneField(
+        CustomUser, on_delete=models.CASCADE, related_name="user_profile"
+    )
+    friends = models.ManyToManyField(
+        "self", symmetrical=False, related_name="following", blank=True
+    )
 
     def __str__(self):
-        return f'{self.user.name}'
-    
+        return f"{self.user.name}"
+
     def get_friends(self):
         return self.friends.all()
 
 
 class RequestStatus(models.TextChoices):
-    PENDING = 'P', 'Pending'
-    ACCEPTED = 'A', 'Accepted'
-    REJECTED = 'R', 'Rejected'
+    PENDING = "P", "Pending"
+    ACCEPTED = "A", "Accepted"
+    REJECTED = "R", "Rejected"
 
 
 class FriendRequest(BaseModel):
-    sender = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='sent_requests')
-    receiver = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='received_requests')
-    status = models.CharField(max_length=1, choices=RequestStatus.choices, default=RequestStatus.PENDING)
+    sender = models.ForeignKey(
+        UserProfile, on_delete=models.CASCADE, related_name="sent_requests"
+    )
+    receiver = models.ForeignKey(
+        UserProfile, on_delete=models.CASCADE, related_name="received_requests"
+    )
+    status = models.CharField(
+        max_length=1, choices=RequestStatus.choices, default=RequestStatus.PENDING
+    )
 
     class Meta:
-        unique_together = ('sender', 'receiver')
-    
+        unique_together = ("sender", "receiver")
+
     def __str__(self):
-        return f'{self.sender} -> {self.receiver}'
-    
+        return f"{self.sender} -> {self.receiver}"
+
     def make_accepted(self):
         self.sender.friends.add(self.receiver)
         self.status = RequestStatus.ACCEPTED
@@ -88,7 +103,6 @@ class FriendRequest(BaseModel):
     def make_rejected(self):
         self.status = RequestStatus.REJECTED
         self.save()
-    
+
     def not_in_pending(self):
         return self.status != RequestStatus.PENDING
-

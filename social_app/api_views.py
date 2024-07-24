@@ -7,7 +7,12 @@ from django.db.utils import IntegrityError
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import FriendRequestSerializer, SignUpSerializer, UserDetailSerializer, UserSerializer
+from .serializers import (
+    FriendRequestSerializer,
+    SignUpSerializer,
+    UserDetailSerializer,
+    UserSerializer,
+)
 from .models import CustomUser, FriendRequest, RequestStatus, UserProfile
 from .utils import is_valid_email
 from .permissions import IsReceiver
@@ -33,21 +38,27 @@ class SignUpView(APIView):
 class UserSearchAPIView(APIView):
     def get(self, request, *args, **kwargs):
         query_params = request.query_params
-        search_key = query_params.get('search', None)
+        search_key = query_params.get("search", None)
         is_email = is_valid_email(search_key)
         if is_email:
             user = get_object_or_404(CustomUser, email=search_key)
             user_profile_serializer = UserDetailSerializer(user.user_profile)
-            return Response(data=user_profile_serializer.data, status=status.HTTP_200_OK)
+            return Response(
+                data=user_profile_serializer.data, status=status.HTTP_200_OK
+            )
         user_profiles = UserProfile.objects.all().exclude(user=request.user)
         if search_key:
-            user_profiles = user_profiles.filter(Q(user__email__icontains=search_key) | Q(user__name__icontains=search_key))
+            user_profiles = user_profiles.filter(
+                Q(user__email__icontains=search_key)
+                | Q(user__name__icontains=search_key)
+            )
         serializer = UserSerializer(user_profiles, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class FriendListView(generics.ListAPIView):
     serializer_class = UserSerializer
+
     def get_queryset(self):
         user_profile = self.request.user.user_profile
         return user_profile.get_friends()
@@ -55,9 +66,12 @@ class FriendListView(generics.ListAPIView):
 
 class PendingRequestListView(generics.ListAPIView):
     serializer_class = FriendRequestSerializer
+
     def get_queryset(self):
         user_profile = self.request.user.user_profile
-        return FriendRequest.objects.filter(receiver=user_profile, status=RequestStatus.PENDING)
+        return FriendRequest.objects.filter(
+            receiver=user_profile, status=RequestStatus.PENDING
+        )
 
 
 class SendRequestAPIview(APIView):
@@ -74,17 +88,17 @@ class SendRequestAPIview(APIView):
             return Response(data=response, status=status.HTTP_400_BAD_REQUEST)
         try:
             requests_object = FriendRequest.objects.create(
-                sender=user_profile,
-                receiver_id=user_id
+                sender=user_profile, receiver_id=user_id
             )
             return Response(
                 data=FriendRequestSerializer(requests_object).data,
-                status=status.HTTP_200_OK
+                status=status.HTTP_200_OK,
             )
         except IntegrityError:
+            # Catching unique together error
             return Response(
                 data={"message": "Friend Request to this user is already present"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
 
@@ -94,12 +108,17 @@ class BaseRequestView(APIView, ABC):
 
     def put(self, request, request_id):
         try:
-            request_object = FriendRequest.objects.select_related('sender', 'receiver').get(pk=request_id)
+            request_object = FriendRequest.objects.select_related(
+                "sender", "receiver"
+            ).get(pk=request_id)
         except FriendRequest.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
         self.check_object_permissions(request, request_object)
         if request_object.not_in_pending():
-            return Response({"message": f"Request can't be {self.action}"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"message": f"Request can't be {self.action}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         self.perform_action(request_object)
         return Response(status=status.HTTP_200_OK)
 
