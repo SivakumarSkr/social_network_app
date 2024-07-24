@@ -61,7 +61,7 @@ Generate a Django secret key using Django's built-in function:
    ```
 4. Install packages
    ```
-   pip install -r requirement.txt
+   pip install -r requirements.txt
    ```
 5. Open a python shell by running the following command:
 
