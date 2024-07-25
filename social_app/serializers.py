@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import CustomUser, UserProfile, FriendRequest
-
+from django.core.exceptions import ValidationError
+from django.contrib.auth.password_validation import validate_password
 
 class SignUpSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
@@ -11,6 +12,14 @@ class SignUpSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ("name", "email", "password")
 
+    def validate_password(self, value):
+        # Validate password using Django's built-in validators
+        try:
+            validate_password(value)
+        except ValidationError as e:
+            raise serializers.ValidationError(e.messages)
+        return value
+    
     def create(self, validated_data):
         user = CustomUser.objects.create_user(
             name=validated_data["name"],
