@@ -41,7 +41,7 @@ class UserSearchAPIView(APIView):
         search_key = query_params.get("search", None)
         is_email = is_valid_email(search_key)
         if is_email:
-            user = get_object_or_404(CustomUser, email=search_key)
+            user = get_object_or_404(CustomUser, email__iexact=search_key)
             user_profile_serializer = UserDetailSerializer(user.user_profile)
             return Response(
                 data=user_profile_serializer.data, status=status.HTTP_200_OK

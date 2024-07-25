@@ -20,6 +20,14 @@ class SignUpSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(e.messages)
         return value
     
+    def validate_email(self, value):
+        value = value.lower()
+        try:
+            CustomUser.objects.get(email=value)
+            raise serializers.ValidationError("User with this email already exisits")
+        except CustomUser.DoesNotExist:
+            return value
+    
     def create(self, validated_data):
         user = CustomUser.objects.create_user(
             name=validated_data["name"],

@@ -146,3 +146,8 @@ MAX_REQUESTS_IN_MINUTE = 3
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.environ["JWT_EXPIREY_MINUTES"])),
 }
+
+AUTHENTICATION_BACKENDS = [
+    'social_app.authentication.CustomAuthenticationBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
