@@ -33,6 +33,7 @@ var/
 *.so
 *.log
 .coverage.*
+htmlcov/
 .cache
 .pytest_cache/
 .installed.cfg

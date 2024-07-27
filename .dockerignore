@@ -49,7 +49,7 @@ docker-compose.yml
 *.sublime-workspace
 *.swp
 *~
-
+htmlcov/
 # Exclude build directories
 build/
 dist/
