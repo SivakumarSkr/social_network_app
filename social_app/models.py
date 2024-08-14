@@ -1,10 +1,8 @@
-from django.contrib.auth.models import (
-    AbstractBaseUser,
-    BaseUserManager
-)
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.db import models
 from django.utils import timezone
 import uuid
+from django.db.models import QuerySet
 
 
 class CustomUserManager(BaseUserManager):
@@ -44,7 +42,7 @@ class CustomUser(AbstractBaseUser):
     REQUIRED_FIELDS = []
 
     def __str__(self):
-        return f'{self.email}'
+        return f"{self.email}"
 
 
 class BaseModel(models.Model):
@@ -67,7 +65,7 @@ class UserProfile(BaseModel):
     def __str__(self):
         return f"{self.user.name}"
 
-    def get_friends(self):
+    def get_friends(self) -> QuerySet["UserProfile"]:
         return self.friends.all()
 
 
@@ -94,14 +92,14 @@ class FriendRequest(BaseModel):
     def __str__(self):
         return f"{self.sender} -> {self.receiver}"
 
-    def make_accepted(self):
+    def make_accepted(self) -> None:
         self.sender.friends.add(self.receiver)
         self.status = RequestStatus.ACCEPTED
         self.save()
 
-    def make_rejected(self):
+    def make_rejected(self) -> None:
         self.status = RequestStatus.REJECTED
         self.save()
 
-    def not_in_pending(self):
+    def not_in_pending(self) -> bool:
         return self.status != RequestStatus.PENDING

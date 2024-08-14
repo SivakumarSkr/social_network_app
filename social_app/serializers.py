@@ -3,6 +3,7 @@ from .models import CustomUser, UserProfile, FriendRequest
 from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
 
+
 class SignUpSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True, required=True, style={"input_type": "password"}
@@ -12,24 +13,24 @@ class SignUpSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ("name", "email", "password")
 
-    def validate_password(self, value):
+    def validate_password(self, value) -> str:
         # Validate password using Django's built-in validators
         try:
             validate_password(value)
         except ValidationError as e:
             raise serializers.ValidationError(e.messages)
         return value
-    
-    def validate_email(self, value):
+
+    def validate_email(self, value: str) -> str:
         value = value.lower()
         try:
             CustomUser.objects.get(email=value)
             raise serializers.ValidationError("User with this email already exisits")
         except CustomUser.DoesNotExist:
             return value
-    
-    def create(self, validated_data):
-        user = CustomUser.objects.create_user(
+
+    def create(self, validated_data) -> CustomUser:
+        user: CustomUser = CustomUser.objects.create_user(
             name=validated_data["name"],
             email=validated_data["email"],
             password=validated_data["password"],

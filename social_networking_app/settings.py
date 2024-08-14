@@ -148,6 +148,6 @@ SIMPLE_JWT = {
 }
 
 AUTHENTICATION_BACKENDS = [
-    'social_app.authentication.CustomAuthenticationBackend',
-    'django.contrib.auth.backends.ModelBackend',
+    "social_app.authentication.CustomAuthenticationBackend",
+    "django.contrib.auth.backends.ModelBackend",
 ]
