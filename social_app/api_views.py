@@ -76,7 +76,11 @@ class UserSearchAPIView(generics.GenericAPIView):
             return Response(
                 data=user_profile_serializer.data, status=status.HTTP_200_OK
             )
-        user_profiles = UserProfile.objects.all().exclude(user=request.user)
+        user_profiles = (
+            UserProfile.objects.all().exclude(user=request.user)
+            # remove users which blocked the current user
+            .remove_block_users(request.user.user_profile)
+        )
         if search_key:
             search_vector = SearchVector('user__name')
             search_query = SearchQuery(search_key)
@@ -91,15 +95,15 @@ class BaseCachedListView(generics.ListAPIView):
     def get_cache_key(self, user_profile) -> str:
         return f"{self.cache_key_prefix}_{user_profile.uuid}"
 
-    def list(self, request):
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
         user_profile = request.user.user_profile
         cache_key = self.get_cache_key(user_profile)
         cached_data = cache.get(cache_key)
         if cached_data:
             return Response(cached_data, status=status.HTTP_200_OK)
-        serializer = self.get_serializer(self.get_queryset(), many=True)
-        cache.set(cache_key, serializer.data)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        cache.set(cache_key, response.data)
+        return Response(response.data, status=status.HTTP_200_OK)
 
 
 class FriendListView(BaseCachedListView):
@@ -108,21 +112,17 @@ class FriendListView(BaseCachedListView):
     cache_key_prefix = "friends_list"
 
     def get_queryset(self) -> QuerySet[UserProfile]:
-        user_profile: UserProfile = self.request.user.user_profile
-        return user_profile.friends.all()
+        return UserProfile.objects.prefetch_related('friends').get(user=self.request.user).friends.all()
 
 
 class PendingRequestListView(BaseCachedListView):
     serializer_class = FriendRequestSerializer
     pagination_class = CustomPagination
-    filter_backends = (OrderingFilter,)
-    ordering_fields = ['created_at']
     cache_key_prefix = "pending_list"
 
     def get_queryset(self) -> QuerySet[FriendRequest]:
-        user_profile = self.request.user.user_profile
         return FriendRequest.objects.filter(
-            receiver=user_profile, status=RequestStatus.PENDING
+            receiver__user=self.request.user, status=RequestStatus.PENDING
         )
 
 

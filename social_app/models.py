@@ -5,6 +5,8 @@ import uuid
 from django.db.models import QuerySet
 from django.conf import settings
 from datetime import timedelta
+from django.db.models import Subquery
+
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -55,6 +57,17 @@ class BaseModel(models.Model):
         abstract = True
 
 
+class UserProfileQuerySet(models.QuerySet):
+    def remove_block_users(self, user):
+        blockers = BlockDetail.objects.filter(blocked=user).values('blocker')
+        return self.exclude(uuid__in=Subquery(blockers))
+
+
+class UserProfileManager(models.Manager):
+    def get_queryset(self):
+        return UserProfileQuerySet(self.model, using=self._db)
+
+
 class UserProfile(BaseModel):
     user = models.OneToOneField(
         CustomUser, on_delete=models.CASCADE, related_name="user_profile"
@@ -62,6 +75,7 @@ class UserProfile(BaseModel):
     friends = models.ManyToManyField(
         "self", symmetrical=False, related_name="following", blank=True
     )
+    objects = UserProfileManager()
 
     def __str__(self):
         return f"{self.user.name}"
