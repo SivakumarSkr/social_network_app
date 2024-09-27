@@ -3,7 +3,8 @@ from django.db import models
 from django.utils import timezone
 import uuid
 from django.db.models import QuerySet
-
+from django.conf import settings
+from datetime import timedelta
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -85,6 +86,7 @@ class FriendRequest(BaseModel):
     status = models.CharField(
         max_length=1, choices=RequestStatus.choices, default=RequestStatus.PENDING
     )
+    cooldown_time = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         unique_together = ("sender", "receiver")
@@ -99,7 +101,29 @@ class FriendRequest(BaseModel):
 
     def make_rejected(self) -> None:
         self.status = RequestStatus.REJECTED
+        cooldown_time = timezone.now() + timedelta(seconds=settings.COOLDOWN_TIME)
+        self.cooldown_time = cooldown_time
         self.save()
 
     def not_in_pending(self) -> bool:
         return self.status != RequestStatus.PENDING
+    
+    def is_rejected(self):
+        return self.status == RequestStatus.REJECTED
+
+    def valid_for_re_request(self):
+        return self.cooldown_time < timezone.now()
+
+    def make_pending(self):
+        self.status = RequestStatus.PENDING
+        self.cooldown_time = None
+        self.save()
+    
+    def is_approved(self):
+        return self.status == RequestStatus.APPROVED
+    
+
+class BlockDetail(BaseModel):
+    blocker = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='blocked_details')
+    blocked = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+

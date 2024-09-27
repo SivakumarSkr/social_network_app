@@ -151,3 +151,5 @@ AUTHENTICATION_BACKENDS = [
     "social_app.authentication.CustomAuthenticationBackend",
     "django.contrib.auth.backends.ModelBackend",
 ]
+
+COOLDOWN_TIME = 24 * 60 * 60

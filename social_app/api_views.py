@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from django.contrib.postgres.search import SearchVector, SearchQuery
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework import generics
@@ -7,12 +8,15 @@ from django.db.utils import IntegrityError
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework import status
+
+from social_app.helpers import process_request
 from .serializers import (
     FriendRequestSerializer,
     SignUpSerializer,
     UserDetailSerializer,
     UserSerializer,
 )
+from rest_framework.pagination import PageNumberPagination
 from .models import CustomUser, FriendRequest, RequestStatus, UserProfile
 from .utils import is_valid_email
 from .permissions import IsReceiver
@@ -38,6 +42,12 @@ class SignUpView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class CustomPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
 class UserSearchAPIView(APIView):
     def get(self, request) -> Response:
         query_params = request.query_params
@@ -53,16 +63,18 @@ class UserSearchAPIView(APIView):
             )
         user_profiles = UserProfile.objects.all().exclude(user=request.user)
         if search_key:
-            user_profiles = user_profiles.filter(
-                Q(user__email__icontains=search_key)
-                | Q(user__name__icontains=search_key)
-            )
-        serializer = UserSerializer(user_profiles, many=True)
+            search_vector = SearchVector('user__name')
+            search_query = SearchQuery(search_key)
+            user_profiles = user_profiles.annotate(search=search_vector).filter(search=search_query)
+        paginator = CustomPagination()
+        paginated_user_profiles = paginator.paginate_queryset(user_profiles, request)
+        serializer = UserSerializer(paginated_user_profiles , many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class FriendListView(generics.ListAPIView):
     serializer_class = UserSerializer
+    pagination_class = CustomPagination
 
     def get_queryset(self) -> QuerySet[UserProfile]:
         user_profile: UserProfile = self.request.user.user_profile
@@ -71,6 +83,7 @@ class FriendListView(generics.ListAPIView):
 
 class PendingRequestListView(generics.ListAPIView):
     serializer_class = FriendRequestSerializer
+    pagination_class = CustomPagination
 
     def get_queryset(self) -> QuerySet[FriendRequest]:
         user_profile = self.request.user.user_profile
@@ -91,20 +104,11 @@ class SendRequestAPIview(APIView):
                 "message": f"Can't send more than {MAX_REQUESTS_ALLOWED} requests per minute."
             }
             return Response(data=response, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            requests_object: FriendRequest = FriendRequest.objects.create(
-                sender=user_profile, receiver_id=user_id
-            )
-            return Response(
-                data=FriendRequestSerializer(requests_object).data,
-                status=status.HTTP_200_OK,
-            )
-        except IntegrityError:
-            # Catching unique together error
-            return Response(
-                data={"message": "Friend Request to this user is already present"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        processed, response_dict = process_request(user_profile, user_id)
+        return Response(
+            data=response_dict,
+            status=status.HTTP_200_OK if processed else status.HTTP_400_BAD_REQUEST,
+        )
 
 
 class BaseRequestView(APIView, ABC):
@@ -151,3 +155,11 @@ class RejectRequestView(BaseRequestView):
 
     def perform_action(self, request_object: FriendRequest) -> None:
         request_object.make_rejected()
+
+
+class BlockUnBlockAPIView(APIView):
+    def post(self, request, user_id):
+        pass
+
+    def delete(self, request, block_detail_id):
+        pass
