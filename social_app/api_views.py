@@ -17,15 +17,16 @@ from .serializers import (
     UserSerializer,
 )
 from rest_framework.pagination import PageNumberPagination
-from .models import CustomUser, FriendRequest, RequestStatus, UserProfile
+from .models import BlockDetail, CustomUser, FriendRequest, RequestStatus, UserProfile
 from .utils import is_valid_email
-from .permissions import IsReceiver
+from .permissions import IsNotBlockedUser, IsReceiver
 from django.utils import timezone
 from datetime import timedelta
 from django.conf import settings
 from typing import Optional
 from django.db.models import QuerySet
-
+from django.core.cache import cache
+from rest_framework.filters import OrderingFilter
 
 MAX_REQUESTS_ALLOWED = settings.MAX_REQUESTS_IN_MINUTE
 
@@ -48,7 +49,21 @@ class CustomPagination(PageNumberPagination):
     max_page_size = 100
 
 
-class UserSearchAPIView(APIView):
+class UserSearchAPIView(generics.GenericAPIView):
+    pagination_class = CustomPagination
+    serializer_class = UserSerializer
+
+    def __paginate_result(self, user_profiles):
+        page = self.paginate_queryset(user_profiles)
+        if page is not None:
+            serializer = self.get_serializer(page , many=True)
+            result = self.get_paginated_response(serializer.data)
+            data = result.data
+        else:
+            serializer = self.get_serializer(user_profiles, many=True)
+            data = serializer.data
+        return data
+    
     def get(self, request) -> Response:
         query_params = request.query_params
         search_key: Optional[str] = query_params.get("search", None)
@@ -66,24 +81,43 @@ class UserSearchAPIView(APIView):
             search_vector = SearchVector('user__name')
             search_query = SearchQuery(search_key)
             user_profiles = user_profiles.annotate(search=search_vector).filter(search=search_query)
-        paginator = CustomPagination()
-        paginated_user_profiles = paginator.paginate_queryset(user_profiles, request)
-        serializer = UserSerializer(paginated_user_profiles , many=True)
+        data = self.__paginate_result(user_profiles)
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class BaseCachedListView(generics.ListAPIView):
+    cache_key_prefix: Optional[str] = None  # Prefix for cache key (to be set in child classes)
+
+    def get_cache_key(self, user_profile) -> str:
+        return f"{self.cache_key_prefix}_{user_profile.uuid}"
+
+    def list(self, request):
+        user_profile = request.user.user_profile
+        cache_key = self.get_cache_key(user_profile)
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data, status=status.HTTP_200_OK)
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        cache.set(cache_key, serializer.data)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class FriendListView(generics.ListAPIView):
+class FriendListView(BaseCachedListView):
     serializer_class = UserSerializer
     pagination_class = CustomPagination
+    cache_key_prefix = "friends_list"
 
     def get_queryset(self) -> QuerySet[UserProfile]:
         user_profile: UserProfile = self.request.user.user_profile
-        return user_profile.get_friends()
+        return user_profile.friends.all()
 
 
-class PendingRequestListView(generics.ListAPIView):
+class PendingRequestListView(BaseCachedListView):
     serializer_class = FriendRequestSerializer
     pagination_class = CustomPagination
+    filter_backends = (OrderingFilter,)
+    ordering_fields = ['created_at']
+    cache_key_prefix = "pending_list"
 
     def get_queryset(self) -> QuerySet[FriendRequest]:
         user_profile = self.request.user.user_profile
@@ -93,6 +127,8 @@ class PendingRequestListView(generics.ListAPIView):
 
 
 class SendRequestAPIview(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsNotBlockedUser]
+
     def post(self, request, user_id) -> Response:
         user_profile = request.user.user_profile
         time_threshold = timezone.now() - timedelta(seconds=60)
@@ -159,7 +195,17 @@ class RejectRequestView(BaseRequestView):
 
 class BlockUnBlockAPIView(APIView):
     def post(self, request, user_id):
-        pass
+        user_profile = request.user.user_profile
+        try:
+            BlockDetail.objects.create(blocker=user_profile, blocked_id=user_id)
+        except IntegrityError:
+            return Response({"message": "Already blocked"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message": "Blocked Successfully"})
 
-    def delete(self, request, block_detail_id):
-        pass
+    def delete(self, request, user_id):
+        user_profile = request.user.user_profile
+        blocked_detail = BlockDetail.objects.filter(blocker=user_profile, blocked_id=user_id).first()
+        if blocked_detail is None:
+            return Response({"message": "User not blocked"}, status=status.HTTP_400_BAD_REQUEST)
+        blocked_detail.delete()
+        return Response({"message": "User is unblocked"})

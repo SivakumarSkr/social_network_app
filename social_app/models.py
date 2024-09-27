@@ -118,12 +118,14 @@ class FriendRequest(BaseModel):
         self.status = RequestStatus.PENDING
         self.cooldown_time = None
         self.save()
-    
-    def is_approved(self):
-        return self.status == RequestStatus.APPROVED
+
+    def is_accepted(self):
+        return self.status == RequestStatus.ACCEPTED
     
 
 class BlockDetail(BaseModel):
     blocker = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='blocked_details')
     blocked = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
 
+    class Meta:
+        unique_together = ("blocker", "blocked")

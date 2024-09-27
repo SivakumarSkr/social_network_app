@@ -1,5 +1,6 @@
 from django.urls import path
 from .api_views import (
+    BlockUnBlockAPIView,
     SignUpView,
     UserSearchAPIView,
     FriendListView,
@@ -32,4 +33,5 @@ urlpatterns = [
         RejectRequestView.as_view(),
         name="reject-request",
     ),
+    path("block/<user_id>/", BlockUnBlockAPIView.as_view(), name="block-unblock")
 ]
